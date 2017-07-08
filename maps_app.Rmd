@@ -1,0 +1,46 @@
+---
+title: "R Markdown and Leaflet"
+author: "Julio Bolivar"
+date: "8 July 2017"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(jsonlite)
+library(leaflet)
+
+capitals_info <- fromJSON("http://techslides.com/demos/country-capitals.json")
+capitals_info$LatC = as.double(capitals_info$CapitalLatitude)
+capitals_info$LongC = as.double(capitals_info$CapitalLongitude)
+
+err <- which(is.na(capitals_info$LatC))
+capitals_info[err,]$LatC = 38.883333
+capitals_info[err,]$LongC = -77.000000
+```
+
+## Lines to all other countries
+```{r, echo=FALSE}
+bootstrapPage(  
+  selectInput("country", "Select Country:",
+                selected = "Colombia", capitals_info$CountryName)
+)
+
+renderLeaflet({      
+      df <- data.frame(lat = capitals_info$LatC,
+                       lng = capitals_info$LongC)
+      lat <- capitals_info[which(capitals_info$CountryName == input$country),]$LatC
+      long <- capitals_info[which(capitals_info$CountryName == input$country),]$LongC
+      
+      df %>% 
+        leaflet() %>%
+        addTiles() %>%
+        addCircles(weight = 2, radius = 20, popup = capitals_info$CountryName) %>% addPolylines(
+          lat = as.vector(t(cbind(lat, capitals_info$LatC))), 
+          lng = as.vector(t(cbind(long, capitals_info$LongC))),
+          weight = 0.5,
+          opacity = 1,
+        )
+    })
+```
